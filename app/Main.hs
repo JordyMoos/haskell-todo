@@ -4,8 +4,22 @@ import Options.Applicative
 
 type ItemIndex = Int
 
+type ItemDescription = Maybe String
+
+data Options = Options FilePath ItemIndex ItemDescription deriving Show
+
+
 defaultDataPath :: FilePath
 defaultDataPath = "~/.to-do.yaml"
+
+
+optionsParser :: Parser Options
+optionsParser = Options
+    <$> dataPathParser
+    <*> itemIndexParser
+    <*> updateItemDescriptionParser
+
+
 
 dataPathParser :: Parser FilePath
 dataPathParser = strOption $
@@ -19,8 +33,18 @@ dataPathParser = strOption $
 itemIndexParser :: Parser ItemIndex
 itemIndexParser = argument auto (metavar "ITEMINDEX" <> help "index of item")
 
+
+itemDescriptionValueParser  :: Parser String
+itemDescriptionValueParser =
+    strOption (long "desc" <> short 'd' <> metavar "DESCRIPTION" <> help "description")
+
+updateItemDescriptionParser :: Parser ItemDescription
+updateItemDescriptionParser =
+    Just <$> itemDescriptionValueParser
+    <|> flag' Nothing (long "clear-desc")
+
 main :: IO ()
 main = do
-    dataPath <- execParser (info (dataPathParser) (progDesc "To-do list manager"))
-    putStrLn $ "dataPath=" ++ show dataPath
+    options <- execParser (info (optionsParser) (progDesc "To-do list manager"))
+    putStrLn $ "options=" ++ show options
 
