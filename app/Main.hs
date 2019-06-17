@@ -9,8 +9,10 @@ import           Data.Aeson
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import qualified Data.Yaml as Yaml
+import           Data.String.Utils
 import           GHC.Generics
 import           Options.Applicative     hiding ( infoParser )
+import           System.Directory
 
 
 type ItemIndex = Int
@@ -187,7 +189,9 @@ dataPathParser =
 main :: IO ()
 main = do
     Options dataPath command <- execParser $ info optionsParser (progDesc "To-do list")
-    toDoList <- readToDoList dataPath
+    homeDir <- getHomeDirectory
+    let expandedDataPath = replace "~" homeDir dataPath
+    toDoList <- readToDoList expandedDataPath
     print toDoList
 
 

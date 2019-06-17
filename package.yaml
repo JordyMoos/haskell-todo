@@ -27,6 +27,8 @@ dependencies:
 - text
 - aeson
 - yaml
+- MissingH
+- directory
 
 library:
   source-dirs: src
