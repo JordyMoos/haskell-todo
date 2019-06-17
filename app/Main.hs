@@ -186,7 +186,8 @@ dataPathParser =
 
 main :: IO ()
 main = do
-    toDoList <- readToDoList "file.txt"
+    Options dataPath command <- execParser $ info optionsParser (progDesc "To-do list")
+    toDoList <- readToDoList dataPath
     print toDoList
 
 
@@ -208,9 +209,12 @@ writeToDoList :: FilePath -> ToDoList -> IO ()
 writeToDoList dataPath toDoList = BS.writeFile dataPath (Yaml.encode toDoList)
 
 
-readToDoList :: FilePath -> IO (Maybe ToDoList)
-readToDoList dataPath =
-    catchJust
+readToDoList :: FilePath -> IO ToDoList
+readToDoList dataPath = do
+    mbToDoList <- catchJust
         (\e -> if isDoesNotExistError e then Just () else Nothing)
         (BS.readFile dataPath >>= return . Yaml.decode)
         (\_ -> return $ Just (ToDoList []))
+    case mbToDoList of
+        Nothing -> error "File is corrupy"
+        Just toDoList -> return toDoList
