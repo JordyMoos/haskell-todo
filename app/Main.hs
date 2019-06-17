@@ -3,6 +3,8 @@
 
 module Main where
 
+import           Control.Exception
+import           System.IO.Error
 import           Data.Aeson
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
@@ -184,12 +186,8 @@ dataPathParser =
 
 main :: IO ()
 main = do
-    BSL.putStrLn $ encode $ ToDoList
-        [ Item "title1" (Just "description 1") (Just "priority1") (Just "dueBy1")
-        , Item "title2" (Just "description 2") (Just "priority2") (Just "dueBy2")
-        ]
-    -- Options dataPath command <- execParser $ info optionsParser (progDesc "To-do list manager")
-    -- run dataPath command
+    toDoList <- readToDoList "file.txt"
+    print toDoList
 
 
 run :: FilePath -> Command -> IO ()
@@ -204,3 +202,15 @@ run dataPath (Update idx itemUpdate) =
     putStrLn $ "Update: idx=" ++ show idx ++ " itemUpdate=" ++ show itemUpdate
 run dataPath (Remove idx) = 
     putStrLn $ "Remove: idx=" ++ show idx
+
+
+writeToDoList :: FilePath -> ToDoList -> IO ()
+writeToDoList dataPath toDoList = BS.writeFile dataPath (Yaml.encode toDoList)
+
+
+readToDoList :: FilePath -> IO (Maybe ToDoList)
+readToDoList dataPath =
+    catchJust
+        (\e -> if isDoesNotExistError e then Just () else Nothing)
+        (BS.readFile dataPath >>= return . Yaml.decode)
+        (\_ -> return $ Just (ToDoList []))
