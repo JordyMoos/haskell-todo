@@ -155,8 +155,11 @@ itemPriorityValueParser =
         readPriority = eitherReader $ \arg ->
             case arg of
                 "1" -> Right Low
+                "low" -> Right Low
                 "2" -> Right Normal
+                "normal" -> Right Normal
                 "3" -> Right High
+                "high" -> Right High
                 _ -> Left $ "Invalid priority value " ++ arg
 
 
@@ -218,7 +221,7 @@ run dataPath Info = putStrLn "Info"
 run dataPath Init = putStrLn "Init"
 run dataPath List = putStrLn "List"
 run dataPath (Add item) =
-    putStrLn $ "Add: item=" ++ show item
+    addItem dataPath item
 run dataPath (View idx) = 
     viewItem dataPath idx
 run dataPath (Update idx itemUpdate) =
@@ -264,3 +267,10 @@ showItem idx (Item title mbDescription mbPriority mbDueBy) = do
 showField :: (a -> String) -> Maybe a -> String
 showField f (Just x) = f x
 showField _ Nothing = "(not set)"
+
+
+addItem :: FilePath -> Item -> IO ()
+addItem dataPath item = do
+    ToDoList items <- readToDoList dataPath
+    let newToDoList = ToDoList (item : items)
+    writeToDoList dataPath newToDoList
