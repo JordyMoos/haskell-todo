@@ -14,6 +14,8 @@ import           GHC.Generics
 import           Options.Applicative     hiding ( infoParser )
 import           System.Directory
 import           Data.Time
+import           Data.List.Safe ((!!))
+import           Prelude hiding ((!!))
 
 
 type ItemIndex = Int
@@ -243,4 +245,22 @@ readToDoList dataPath = do
 viewItem :: FilePath -> ItemIndex -> IO ()
 viewItem dataPath idx = do
     ToDoList items <- readToDoList dataPath
-    print items
+    case items !! idx of
+        Nothing -> putStrLn "Invalid item index"
+        Just item -> showItem idx item
+
+
+showItem :: ItemIndex -> Item -> IO ()
+showItem idx (Item title mbDescription mbPriority mbDueBy) = do
+    putStrLn $ "[" ++ show idx ++ "]: " ++ title
+    putStr " Description: "
+    putStrLn $ showField id mbDescription
+    putStr " Priority: "
+    putStrLn $ showField show mbPriority
+    putStr " Due by: "
+    putStrLn $ showField (formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S") mbDueBy
+
+
+showField :: (a -> String) -> Maybe a -> String
+showField f (Just x) = f x
+showField _ Nothing = "(not set)"

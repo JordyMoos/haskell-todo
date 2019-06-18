@@ -30,6 +30,7 @@ dependencies:
 - MissingH
 - directory
 - time
+- listsafe
 
 library:
   source-dirs: src
