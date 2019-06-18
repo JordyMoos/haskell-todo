@@ -13,13 +13,18 @@ import           Data.String.Utils
 import           GHC.Generics
 import           Options.Applicative     hiding ( infoParser )
 import           System.Directory
+import           Data.Time
 
 
 type ItemIndex = Int
 type ItemTitle = String
 type ItemDescription = Maybe String
-type ItemPriority = Maybe String
-type ItemDueBy = Maybe String
+type ItemPriority = Maybe Priority
+type ItemDueBy = Maybe LocalTime
+
+data Priority = Low | Normal | High deriving (Generic, Show)
+instance ToJSON Priority
+instance FromJSON Priority
 
 data Item = Item
     { title :: ItemTitle
@@ -41,7 +46,6 @@ data ItemUpdate = ItemUpdate
 data ToDoList = ToDoList [Item] deriving (Generic, Show)
 instance ToJSON ToDoList
 instance FromJSON ToDoList
-
 
 data Options = Options FilePath Command deriving Show
 
@@ -122,7 +126,7 @@ updateItemPriorityParser =
     <|> flag' Nothing (long "clear-priority")
 
 
-updateItemDueByParser :: Parser ItemPriority
+updateItemDueByParser :: Parser ItemDueBy
 updateItemDueByParser =
     Just <$> itemDueByValueParser
     <|> flag' Nothing (long "clear-due-by")
@@ -142,14 +146,28 @@ itemDescriptionValueParser =
     strOption $ long "desc" <> short 'd' <> metavar "DESCRIPTION" <> help "description"
 
 
-itemPriorityValueParser :: Parser String
+itemPriorityValueParser :: Parser Priority
 itemPriorityValueParser =
-    strOption $ long "priority" <> short 'p' <> metavar "PRIORITY" <> help "priority"
+    option readPriority $ long "priority" <> short 'p' <> metavar "PRIORITY" <> help "priority"
+    where
+        readPriority = eitherReader $ \arg ->
+            case arg of
+                "1" -> Right Low
+                "2" -> Right Normal
+                "3" -> Right High
+                _ -> Left $ "Invalid priority value " ++ arg
 
 
-itemDueByValueParser :: Parser String
+itemDueByValueParser :: Parser LocalTime
 itemDueByValueParser =
-    strOption $ long "due-by" <> short 'b' <> metavar "DUEBY" <> help "due-by date/time"
+    option readDateTime $ long "due-by" <> short 'b' <> metavar "DUEBY" <> help "due-by date/time"
+    where
+        readDateTime = eitherReader $ \arg ->
+            case parseDateTimeMaybe arg of
+                (Just dateTime) -> Right dateTime
+                Nothing -> Left $ "Date/time string must be in " ++ dateTimeFormat ++ " format"
+        parseDateTimeMaybe = parseTimeM False defaultTimeLocale dateTimeFormat
+        dateTimeFormat = "%Y/%m/%d %H:%M:%S"
 
 
 removeParser :: Parser Command
@@ -191,9 +209,7 @@ main = do
     Options dataPath command <- execParser $ info optionsParser (progDesc "To-do list")
     homeDir <- getHomeDirectory
     let expandedDataPath = replace "~" homeDir dataPath
-    toDoList <- readToDoList expandedDataPath
-    print toDoList
-
+    run expandedDataPath command
 
 run :: FilePath -> Command -> IO ()
 run dataPath Info = putStrLn "Info"
@@ -202,7 +218,7 @@ run dataPath List = putStrLn "List"
 run dataPath (Add item) =
     putStrLn $ "Add: item=" ++ show item
 run dataPath (View idx) = 
-    putStrLn $ "View: idx=" ++ show idx
+    viewItem dataPath idx
 run dataPath (Update idx itemUpdate) =
     putStrLn $ "Update: idx=" ++ show idx ++ " itemUpdate=" ++ show itemUpdate
 run dataPath (Remove idx) = 
@@ -222,3 +238,9 @@ readToDoList dataPath = do
     case mbToDoList of
         Nothing -> error "File is corrupy"
         Just toDoList -> return toDoList
+
+
+viewItem :: FilePath -> ItemIndex -> IO ()
+viewItem dataPath idx = do
+    ToDoList items <- readToDoList dataPath
+    print items

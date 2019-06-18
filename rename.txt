@@ -1,8 +1,8 @@
-- dueBy: dueBy1
-  priority: priority1
+- dueBy: 
+  priority: Normal
   title: title1
   description: description 1
-- dueBy: dueBy2
-  priority: priority2
+- dueBy:
+  priority: High
   title: title2
   description: description 2

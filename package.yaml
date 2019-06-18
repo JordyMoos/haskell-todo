@@ -29,6 +29,7 @@ dependencies:
 - yaml
 - MissingH
 - directory
+- time
 
 library:
   source-dirs: src
